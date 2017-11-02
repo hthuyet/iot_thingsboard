@@ -1,8 +1,8 @@
 {
   "brokers": [
     {
-      "host": "35.194.12.75",
-      "port": 1883,
+      "host": "localhost",
+      "port": 1882,
       "ssl": false,
       "retryInterval": 3000,
       "credentials": {
