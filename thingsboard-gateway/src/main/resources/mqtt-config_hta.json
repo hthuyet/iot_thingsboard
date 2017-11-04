@@ -1,0 +1,96 @@
+{
+  "brokers": [
+    {
+      "host": "35.194.12.75",
+      "port": 1883,
+      "ssl": false,
+      "retryInterval": 3000,
+      "credentials": {
+        "type": "basic",
+        "username": "user",
+        "password": "password"
+      },
+      "mapping": [
+        {
+          "topicFilter": "hta",
+          "converter": {
+            "type": "json",
+            "filterExpression": "",
+            "deviceNameJsonExpression": "${$.uid}",
+            "attributes": [
+              {
+                "type": "string",
+                "key": "data",
+                "value": "${$.data}"
+              }
+            ]
+          }
+        }
+      ],
+      "connectRequests": [
+        {
+          "topicFilter": "hta/connect",
+          "deviceNameJsonExpression": "${$.uid}"
+        },
+        {
+          "topicFilter": "hta/+/connect",
+          "deviceNameTopicExpression": "(?<=hta\/)(.*?)(?=\/connect)"
+        }
+      ],
+      "disconnectRequests": [
+        {
+          "topicFilter": "hta/disconnect",
+          "deviceNameJsonExpression": "${$.uid}"
+        },
+        {
+          "topicFilter": "hta/+/disconnect",
+          "deviceNameTopicExpression": "(?<=hta\/)(.*?)(?=\/disconnect)"
+        }
+      ],
+      "attributeRequests": [
+        {
+          "topicFilter": "hta/attributes",
+          "deviceNameJsonExpression": "${$.uid}",
+          "attributeKeyJsonExpression": "${$.key}",
+          "requestIdJsonExpression": "${$.requestId}",
+          "clientScope": false,
+          "responseTopicExpression": "hta/${deviceName}/attributes/${responseId}",
+          "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+        },
+        {
+          "topicFilter": "hta/+/attributes/+/request/+",
+          "deviceNameTopicExpression": "(?<=hta\/)(.*?)(?=\/attributes)",
+          "attributeKeyTopicExpression": "(?<=attributes\/)(.*?)(?=\/request)",
+          "requestIdTopicExpression": "(?<=request\/)(.*?)($)",
+          "clientScope": false,
+          "responseTopicExpression": "hta/${deviceName}/attributes/${attributeKey}/response/${requestId}",
+          "valueExpression": "${attributeValue}"
+        }
+      ],
+      "attributeUpdates": [
+        {
+          "deviceNameFilter": ".*",
+          "attributeFilter": ".*",
+          "topicExpression": "hta/${deviceName}/${attributeKey}",
+          "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+        }
+      ],
+      "serverSideRpc": [
+        {
+          "deviceNameFilter": ".*",
+          "methodFilter": "echo",
+          "requestTopicExpression": "hta/${deviceName}/request/${methodName}/${requestId}",
+          "responseTopicExpression": "hta/${deviceName}/response/${methodName}/${requestId}",
+          "responseTimeout": 10000,
+          "valueExpression": "${params}"
+        },
+        {
+          "deviceNameFilter": ".*",
+          "methodFilter": "no-reply",
+          "requestTopicExpression": "hta/${deviceName}/request/${methodName}/${requestId}",
+          "valueExpression": "${params}"
+        }
+      ]
+    }
+  ]
+}

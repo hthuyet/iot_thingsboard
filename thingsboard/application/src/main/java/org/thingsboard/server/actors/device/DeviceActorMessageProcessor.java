@@ -107,11 +107,13 @@ public class DeviceActorMessageProcessor extends AbstractContextAwareMsgProcesso
                 body.getParams()
         );
 
+        logger.info("-------------processRpcRequest ExpirationTime: " + new Date(request.getExpirationTime()));
+        logger.info("-------------processRpcRequest curr: " + new Date());
         long timeout = request.getExpirationTime() - System.currentTimeMillis();
         //@TODO: ThuyetLV debug
-        timeout = 1;
+        timeout = 60000;
         if (timeout <= 0) {
-            logger.debug("[{}][{}] Ignoring message due to exp time reached", deviceId, request.getId(), request.getExpirationTime());
+            logger.debug("[{}][{}] Ignoring message due to exp time {} reached", deviceId, request.getId(), request.getExpirationTime());
             return;
         }
 

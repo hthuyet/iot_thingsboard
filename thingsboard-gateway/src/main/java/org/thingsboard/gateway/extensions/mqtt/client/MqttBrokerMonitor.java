@@ -1,17 +1,17 @@
 /**
  * Copyright © 2017 The Thingsboard Authors
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.thingsboard.gateway.extensions.mqtt.client;
 
@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener, RpcCommandListener {
+
     private final UUID clientId = UUID.randomUUID();
     private final GatewayService gateway;
     private final MqttBrokerConfiguration configuration;
@@ -69,6 +70,7 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
 
     public void connect() {
         try {
+            log.info("-------------MqttBrokerMonitor connect MQTT: " + configuration.getHost() + " - " + configuration.getPort());
             client = new MqttAsyncClient((configuration.isSsl() ? "ssl" : "tcp") + "://" + configuration.getHost() + ":" + configuration.getPort(),
                     getClientId(), new MemoryPersistence());
             client.setCallback(this);
@@ -85,13 +87,13 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
             configuration.getCredentials().configure(clientOptions);
             checkConnection();
             if (configuration.getAttributeUpdates() != null) {
-                configuration.getAttributeUpdates().forEach(mapping ->
-                        gateway.subscribe(new AttributesUpdateSubscription(mapping.getDeviceNameFilter(), this))
+                configuration.getAttributeUpdates().forEach(mapping
+                        -> gateway.subscribe(new AttributesUpdateSubscription(mapping.getDeviceNameFilter(), this))
                 );
             }
             if (configuration.getServerSideRpc() != null) {
-                configuration.getServerSideRpc().forEach(mapping ->
-                        gateway.subscribe(new RpcCommandSubscription(mapping.getDeviceNameFilter(), this))
+                configuration.getServerSideRpc().forEach(mapping
+                        -> gateway.subscribe(new RpcCommandSubscription(mapping.getDeviceNameFilter(), this))
                 );
             }
         } catch (MqttException e) {
@@ -149,16 +151,19 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
         }
         if (configuration.getConnectRequests() != null) {
             for (DeviceStateChangeMapping mapping : configuration.getConnectRequests()) {
+                log.info("-------------------subscribe getConnectRequests: " + mapping.getTopicFilter());
                 tokens.add(client.subscribe(mapping.getTopicFilter(), 1, new MqttDeviceStateChangeMessageListener(mapping, this::onDeviceConnect)));
             }
         }
         if (configuration.getDisconnectRequests() != null) {
             for (DeviceStateChangeMapping mapping : configuration.getDisconnectRequests()) {
+                log.info("-------------------subscribe getDisconnectRequests: " + mapping.getTopicFilter());
                 tokens.add(client.subscribe(mapping.getTopicFilter(), 1, new MqttDeviceStateChangeMessageListener(mapping, this::onDeviceDisconnect)));
             }
         }
         if (configuration.getAttributeRequests() != null) {
             for (AttributeRequestsMapping mapping : configuration.getAttributeRequests()) {
+                log.info("-------------------subscribe getAttributeRequests: " + mapping.getTopicFilter());
                 tokens.add(client.subscribe(mapping.getTopicFilter(), 1, new MqttAttributeRequestsMessageListener(this::onAttributeRequest, mapping)));
             }
         }
@@ -268,7 +273,10 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
 
         mappings.forEach(mapping -> {
             String requestTopic = replace(mapping.getRequestTopicExpression(), deviceName, command);
+
+            log.info("-------onRpcCommand requestTopic: " + requestTopic);
             String body = replace(mapping.getValueExpression(), deviceName, command);
+            log.info("-------onRpcCommand body: " + body);
 
             boolean oneway = StringUtils.isEmpty(mapping.getResponseTopicExpression());
             if (oneway) {
@@ -292,7 +300,7 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
     }
 
     private void onRpcCommandResponse(String topic, RpcCommandResponse rpcResponse) {
-        log.info("[{}] Un-subscribe from RPC response topic [{}]", rpcResponse.getDeviceName(), topic);
+        log.info("[{}] Un-subscribe from RPC response topic [{}] - data [{}]", rpcResponse.getDeviceName(), topic, rpcResponse.getData());
         gateway.onDeviceRpcResponse(rpcResponse);
         unsubscribe(rpcResponse.getDeviceName(), rpcResponse.getRequestId(), topic);
     }
@@ -350,10 +358,11 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-
+        log.info("------messageArrived---");
     }
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
+        log.info("------deliveryComplete---");
     }
 }

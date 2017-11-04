@@ -1,0 +1,96 @@
+{
+  "brokers": [
+    {
+      "host": "35.194.12.75",
+      "port": 1883,
+      "ssl": false,
+      "retryInterval": 3000,
+      "credentials": {
+        "type": "basic",
+        "username": "user",
+        "password": "password"
+      },
+      "mapping": [
+        {
+          "topicFilter": "ewi",
+          "converter": {
+            "type": "json",
+            "filterExpression": "",
+            "deviceNameJsonExpression": "${$.cmd.id}",
+            "attributes": [
+              {
+                "type": "string",
+                "key": "data",
+                "value": "${$.data}"
+              }
+            ]
+          }
+        }
+      ],
+      "connectRequests": [
+        {
+          "topicFilter": "ewi/connect",
+          "deviceNameJsonExpression": "${$.cmd.id}"
+        },
+        {
+          "topicFilter": "ewi/+/connect",
+          "deviceNameTopicExpression": "(?<=ewi\/)(.*?)(?=\/connect)"
+        }
+      ],
+      "disconnectRequests": [
+        {
+          "topicFilter": "ewi/disconnect",
+          "deviceNameJsonExpression": "${$.uid}"
+        },
+        {
+          "topicFilter": "ewi/+/disconnect",
+          "deviceNameTopicExpression": "(?<=ewi\/)(.*?)(?=\/disconnect)"
+        }
+      ],
+      "attributeRequests": [
+        {
+          "topicFilter": "ewi/attributes",
+          "deviceNameJsonExpression": "${$.uid}",
+          "attributeKeyJsonExpression": "${$.key}",
+          "requestIdJsonExpression": "${$.requestId}",
+          "clientScope": false,
+          "responseTopicExpression": "ewi/${deviceName}/attributes/${responseId}",
+          "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+        },
+        {
+          "topicFilter": "ewi/+/attributes/+/request/+",
+          "deviceNameTopicExpression": "(?<=ewi\/)(.*?)(?=\/attributes)",
+          "attributeKeyTopicExpression": "(?<=attributes\/)(.*?)(?=\/request)",
+          "requestIdTopicExpression": "(?<=request\/)(.*?)($)",
+          "clientScope": false,
+          "responseTopicExpression": "ewi/${deviceName}/attributes/${attributeKey}/response/${requestId}",
+          "valueExpression": "${attributeValue}"
+        }
+      ],
+      "attributeUpdates": [
+        {
+          "deviceNameFilter": ".*",
+          "attributeFilter": ".*",
+          "topicExpression": "ewi/${deviceName}/${attributeKey}",
+          "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+        }
+      ],
+      "serverSideRpc": [
+        {
+          "deviceNameFilter": ".*",
+          "methodFilter": "echo",
+          "requestTopicExpression": "ewi/${deviceName}/request/${methodName}/${requestId}",
+          "responseTopicExpression": "ewi/${deviceName}/response/${methodName}/${requestId}",
+          "responseTimeout": 10000,
+          "valueExpression": "${params}"
+        },
+        {
+          "deviceNameFilter": ".*",
+          "methodFilter": "no-reply",
+          "requestTopicExpression": "ewi/${deviceName}/request/${methodName}/${requestId}",
+          "valueExpression": "${params}"
+        }
+      ]
+    }
+  ]
+}

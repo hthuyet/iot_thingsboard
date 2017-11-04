@@ -1,117 +1,243 @@
 {
-  "brokers": [
-    {
-      "host": "localhost",
-      "port": 1882,
-      "ssl": false,
-      "retryInterval": 3000,
-      "credentials": {
-        "type": "anonymous"
-      },
-      "mapping": [
+    "brokers": [
         {
-          "topicFilter": "sensors",
-          "converter": {
-            "type": "json",
-            "filterExpression": "",
-            "deviceNameJsonExpression": "${$.serialNumber}",
-            "attributes": [
-              {
-                "type": "string",
-                "key": "model",
-                "value": "${$.model}"
-              }
+            "host": "35.194.12.75",
+            "port": 1883,
+            "ssl": false,
+            "retryInterval": 3000,
+            "credentials": {
+                "type": "basic",
+                "username": "user",
+                "password": "password"
+            },
+            "mapping": [
+                {
+                    "topicFilter": "sensors",
+                    "converter": {
+                        "type": "json",
+                        "filterExpression": "",
+                        "deviceNameJsonExpression": "${$.serialNumber}",
+                        "attributes": [
+                            {
+                                "type": "string",
+                                "key": "model",
+                                "value": "${$.model}"
+                            }
+                        ],
+                        "timeseries": [
+                            {
+                                "type": "double",
+                                "key": "temperature",
+                                "value": "${$.temperature}"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "topicFilter": "sensor/+/temperature",
+                    "converter": {
+                        "type": "json",
+                        "filterExpression": "",
+                        "deviceNameTopicExpression": "(?<=sensor\/)(.*?)(?=\/temperature)",
+                        "timeout": 60000,
+                        "timeseries": [
+                            {
+                                "type": "double",
+                                "key": "temperature",
+                                "value": "${$.value}"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "topicFilter": "hta",
+                    "converter": {
+                        "type": "json",
+                        "filterExpression": "",
+                        "deviceNameJsonExpression": "${$.uid}",
+                        "attributes": [
+                            {
+                                "type": "string",
+                                "key": "data",
+                                "value": "${$.data}"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "topicFilter": "ewi",
+                    "converter": {
+                        "type": "json",
+                        "filterExpression": "",
+                        "deviceNameJsonExpression": "${$.cmd.id}",
+                        "attributes": [
+                            {
+                                "type": "string",
+                                "key": "data",
+                                "value": "${$.data}"
+                            }
+                        ]
+                    }
+                }
             ],
-            "timeseries": [
-              {
-                "type": "double",
-                "key": "temperature",
-                "value": "${$.temperature}"
-              }
+            "connectRequests": [
+                {
+                    "topicFilter": "sensors/connect",
+                    "deviceNameJsonExpression": "${$.serialNumber}"
+                },
+                {
+                    "topicFilter": "sensor/+/connect",
+                    "deviceNameTopicExpression": "(?<=sensor\/)(.*?)(?=\/connect)"
+                },
+                {
+                    "topicFilter": "hta/connect",
+                    "deviceNameJsonExpression": "${$.uid}"
+                },
+                {
+                    "topicFilter": "hta/+/connect",
+                    "deviceNameTopicExpression": "(?<=hta\/)(.*?)(?=\/connect)"
+                },
+                {
+                    "topicFilter": "ewi/connect",
+                    "deviceNameJsonExpression": "${$.cmd.id}"
+                },
+                {
+                    "topicFilter": "ewi/+/connect",
+                    "deviceNameTopicExpression": "(?<=ewi\/)(.*?)(?=\/connect)"
+                }
+            ],
+            "disconnectRequests": [
+                {
+                    "topicFilter": "sensors/disconnect",
+                    "deviceNameJsonExpression": "${$.serialNumber}"
+                },
+                {
+                    "topicFilter": "sensor/+/disconnect",
+                    "deviceNameTopicExpression": "(?<=sensor\/)(.*?)(?=\/disconnect)"
+                },
+                {
+                    "topicFilter": "hta/disconnect",
+                    "deviceNameJsonExpression": "${$.uid}"
+                },
+                {
+                    "topicFilter": "hta/+/disconnect",
+                    "deviceNameTopicExpression": "(?<=hta\/)(.*?)(?=\/disconnect)"
+                },
+                {
+                    "topicFilter": "ewi/disconnect",
+                    "deviceNameJsonExpression": "${$.uid}"
+                },
+                {
+                    "topicFilter": "ewi/+/disconnect",
+                    "deviceNameTopicExpression": "(?<=ewi\/)(.*?)(?=\/disconnect)"
+                }
+            ],
+            "attributeRequests": [
+                {
+                    "topicFilter": "sensors/attributes",
+                    "deviceNameJsonExpression": "${$.serialNumber}",
+                    "attributeKeyJsonExpression": "${$.key}",
+                    "requestIdJsonExpression": "${$.requestId}",
+                    "clientScope": false,
+                    "responseTopicExpression": "sensors/${deviceName}/attributes/${responseId}",
+                    "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+                },
+                {
+                    "topicFilter": "sensors/+/attributes/+/request/+",
+                    "deviceNameTopicExpression": "(?<=sensors\/)(.*?)(?=\/attributes)",
+                    "attributeKeyTopicExpression": "(?<=attributes\/)(.*?)(?=\/request)",
+                    "requestIdTopicExpression": "(?<=request\/)(.*?)($)",
+                    "clientScope": false,
+                    "responseTopicExpression": "sensors/${deviceName}/attributes/${attributeKey}/response/${requestId}",
+                    "valueExpression": "${attributeValue}"
+                },
+                {
+                    "topicFilter": "hta/attributes",
+                    "deviceNameJsonExpression": "${$.uid}",
+                    "attributeKeyJsonExpression": "${$.key}",
+                    "requestIdJsonExpression": "${$.requestId}",
+                    "clientScope": false,
+                    "responseTopicExpression": "hta/${deviceName}/attributes/${responseId}",
+                    "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+                },
+                {
+                    "topicFilter": "hta/+/attributes/+/request/+",
+                    "deviceNameTopicExpression": "(?<=hta\/)(.*?)(?=\/attributes)",
+                    "attributeKeyTopicExpression": "(?<=attributes\/)(.*?)(?=\/request)",
+                    "requestIdTopicExpression": "(?<=request\/)(.*?)($)",
+                    "clientScope": false,
+                    "responseTopicExpression": "hta/${deviceName}/attributes/${attributeKey}/response/${requestId}",
+                    "valueExpression": "${attributeValue}"
+                }
+            ],
+            "attributeUpdates": [
+                {
+                    "deviceNameFilter": ".*",
+                    "attributeFilter": ".*",
+                    "topicExpression": "sensor/${deviceName}/${attributeKey}",
+                    "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "attributeFilter": ".*",
+                    "topicExpression": "hta/${deviceName}/${attributeKey}",
+                    "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
+                }
+            ],
+            "serverSideRpc": [
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "getRelayStatus",
+                    "requestTopicExpression": "hta/${deviceName}/request/${methodName}/${requestId}",
+                    "responseTopicExpression": "hta/${deviceName}/response/${methodName}/${requestId}",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "setRelayStatus",
+                    "requestTopicExpression": "hta/${deviceName}/request/${methodName}/${requestId}",
+                    "responseTopicExpression": "hta/${deviceName}/response/${methodName}/${requestId}",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "myMethod",
+                    "requestTopicExpression": "myMethod/${deviceName}/request/${methodName}/${requestId}",
+                    "responseTopicExpression": "myMethod/${deviceName}/response/${methodName}/${requestId}",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "echo",
+                    "requestTopicExpression": "sensor/${deviceName}/request/${methodName}/${requestId}",
+                    "responseTopicExpression": "sensor/${deviceName}/response/${methodName}/${requestId}",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "no-reply",
+                    "requestTopicExpression": "sensor/${deviceName}/request/${methodName}/${requestId}",
+                    "valueExpression": "${params}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "echo",
+                    "requestTopicExpression": "hta/${deviceName}/request/${methodName}/${requestId}",
+                    "responseTopicExpression": "hta/${deviceName}/response/${methodName}/${requestId}",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}"
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "no-reply",
+                    "requestTopicExpression": "hta/${deviceName}/request/${methodName}/${requestId}",
+                    "valueExpression": "${params}"
+                }
             ]
-          }
-        },
-        {
-          "topicFilter": "sensor/+/temperature",
-          "converter": {
-            "type": "json",
-            "filterExpression": "",
-            "deviceNameTopicExpression": "(?<=sensor\/)(.*?)(?=\/temperature)",
-            "timeout": 60000,
-            "timeseries": [
-              {
-                "type": "double",
-                "key": "temperature",
-                "value": "${$.value}"
-              }
-            ]
-          }
         }
-      ],
-      "connectRequests": [
-        {
-          "topicFilter": "sensors/connect",
-          "deviceNameJsonExpression": "${$.serialNumber}"
-        },
-        {
-          "topicFilter": "sensor/+/connect",
-          "deviceNameTopicExpression": "(?<=sensor\/)(.*?)(?=\/connect)"
-        }
-      ],
-      "disconnectRequests": [
-        {
-          "topicFilter": "sensors/disconnect",
-          "deviceNameJsonExpression": "${$.serialNumber}"
-        },
-        {
-          "topicFilter": "sensor/+/disconnect",
-          "deviceNameTopicExpression": "(?<=sensor\/)(.*?)(?=\/disconnect)"
-        }
-      ],
-      "attributeRequests": [
-        {
-          "topicFilter": "sensors/attributes",
-          "deviceNameJsonExpression": "${$.serialNumber}",
-          "attributeKeyJsonExpression": "${$.key}",
-          "requestIdJsonExpression": "${$.requestId}",
-          "clientScope": false,
-          "responseTopicExpression": "sensors/${deviceName}/attributes/${responseId}",
-          "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
-        },
-        {
-          "topicFilter": "sensors/+/attributes/+/request/+",
-          "deviceNameTopicExpression": "(?<=sensors\/)(.*?)(?=\/attributes)",
-          "attributeKeyTopicExpression": "(?<=attributes\/)(.*?)(?=\/request)",
-          "requestIdTopicExpression": "(?<=request\/)(.*?)($)",
-          "clientScope": false,
-          "responseTopicExpression": "sensors/${deviceName}/attributes/${attributeKey}/response/${requestId}",
-          "valueExpression": "${attributeValue}"
-        }
-      ],
-      "attributeUpdates": [
-        {
-          "deviceNameFilter": ".*",
-          "attributeFilter": ".*",
-          "topicExpression": "sensor/${deviceName}/${attributeKey}",
-          "valueExpression": "{\"${attributeKey}\":\"${attributeValue}\"}"
-        }
-      ],
-      "serverSideRpc": [
-        {
-          "deviceNameFilter": ".*",
-          "methodFilter": "echo",
-          "requestTopicExpression": "sensor/${deviceName}/request/${methodName}/${requestId}",
-          "responseTopicExpression": "sensor/${deviceName}/response/${methodName}/${requestId}",
-          "responseTimeout": 10000,
-          "valueExpression": "${params}"
-        },
-        {
-          "deviceNameFilter": ".*",
-          "methodFilter": "no-reply",
-          "requestTopicExpression": "sensor/${deviceName}/request/${methodName}/${requestId}",
-          "valueExpression": "${params}"
-        }
-      ]
-    }
-  ]
+    ]
 }

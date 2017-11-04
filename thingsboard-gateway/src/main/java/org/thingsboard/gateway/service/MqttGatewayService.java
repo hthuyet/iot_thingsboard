@@ -1,17 +1,17 @@
 /**
  * Copyright © 2017 The Thingsboard Authors
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.thingsboard.gateway.service;
 
@@ -40,6 +40,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static org.thingsboard.gateway.util.JsonTools.*;
@@ -53,6 +55,7 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
 
     private static final long CLIENT_RECONNECT_CHECK_INTERVAL = 1;
     public static final String DEVICE_TELEMETRY_TOPIC = "v1/devices/me/telemetry";
+    public static final String GATEWAY_BASE_TOPIC = "v1/gateway/#";
     public static final String GATEWAY_RPC_TOPIC = "v1/gateway/rpc";
     public static final String GATEWAY_ATTRIBUTES_TOPIC = "v1/gateway/attributes";
     public static final String GATEWAY_TELEMETRY_TOPIC = "v1/gateway/telemetry";
@@ -99,6 +102,8 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
 
         MqttGatewaySecurityConfiguration security = connection.getSecurity();
         security.setupSecurityOptions(tbClientOptions);
+
+        log.info("-------------MqttGatewayService connect MQTT: " + connection.getHost() + " - " + connection.getPort());
 
         tbClient = new MqttAsyncClient((security.isSsl() ? "ssl" : "tcp") + "://" + connection.getHost() + ":" + connection.getPort(),
                 security.getClientId(), persistence.getPersistence());
@@ -232,6 +237,8 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
 
     @Override
     public void onDeviceRpcResponse(RpcCommandResponse response) {
+        log.info("-----------onDeviceRpcResponse----");
+        log.info("Device [{}] RPC response id [{}] - data [{}]", response.getDeviceName(), response.getRequestId(), response.getData());
         final int msgId = msgIdSeq.incrementAndGet();
         int requestId = response.getRequestId();
         String deviceName = response.getDeviceName();
@@ -246,7 +253,7 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
         msg.setId(msgId);
         publishAsync(GATEWAY_RPC_TOPIC, msg,
                 token -> {
-                    log.debug("[{}][{}] RPC response from device was delivered!", deviceName, requestId);
+                    log.info("[{}][{}] RPC response from device was delivered!", deviceName, requestId);
                 },
                 error -> {
                     log.warn("[{}][{}] Failed to report RPC response from device!", deviceName, requestId, error);
@@ -289,24 +296,30 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
         error = node;
     }
 
-    private void connect() {
+    private void connect() throws Exception {
         if (!tbClient.isConnected()) {
             synchronized (connectLock) {
                 while (!tbClient.isConnected()) {
                     log.debug("Attempt to connect to Thingsboard!");
                     try {
+                        IMqttMessageListener imml = this;
                         tbClient.connect(tbClientOptions, null, new IMqttActionListener() {
                             @Override
                             public void onSuccess(IMqttToken iMqttToken) {
                                 log.info("Connected to Thingsboard!");
+                                try {
+                                    log.info("----------subscribe-------");
+                                    tbClient.subscribe(GATEWAY_RPC_TOPIC, 0);
+                                } catch (Exception ex) {
+                                    log.error("ERROR subscribe: " + GATEWAY_RPC_TOPIC, ex);
+                                }
                             }
 
                             @Override
                             public void onFailure(IMqttToken iMqttToken, Throwable e) {
                             }
                         }).waitForCompletion();
-//                        tbClient.subscribe(GATEWAY_ATTRIBUTES_TOPIC, 1, (IMqttMessageListener) this);
-//                        tbClient.subscribe(GATEWAY_RPC_TOPIC, 1, (IMqttMessageListener) this);
+
                         devices.forEach((k, v) -> onDeviceConnect(k));
                     } catch (MqttException e) {
                         log.warn("Failed to connect to Thingsboard!", e);
@@ -379,9 +392,16 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
         scheduler.schedule(this::checkClientReconnected, CLIENT_RECONNECT_CHECK_INTERVAL, TimeUnit.SECONDS);
     }
 
+    public void test() throws Exception {
+        log.info("---------test-----------");
+        String msgContent = "{\"device\":\"hta_01\", \"data\": {\"id\": 1,\"method\": \"myMethod\",\"params\": {\"relay\": \"2\",\"enabled\": true}}}";
+        MqttMessage message = new MqttMessage(msgContent.getBytes());
+        messageArrived(GATEWAY_RPC_TOPIC, message);
+    }
+
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        log.trace("Message arrived [{}] {}", topic, message.getId());
+        log.warn("-------------Message arrived [{}] {}", topic, message.getId());
         if (topic.equals(GATEWAY_ATTRIBUTES_TOPIC)) {
             onAttributesUpdate(message);
         } else if (topic.equals(GATEWAY_RESPONSES_ATTRIBUTES_TOPIC)) {
@@ -418,17 +438,20 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
     private void onRpcCommand(MqttMessage message) {
         JsonNode payload = fromString(new String(message.getPayload(), StandardCharsets.UTF_8));
         String deviceName = payload.get("device").asText();
+        log.info("------------------onRpcCommand deviceName: " + deviceName);
         Set<RpcCommandListener> listeners = rpcCommandSubs.stream()
                 .filter(sub -> sub.matches(deviceName)).map(sub -> sub.getListener())
                 .collect(Collectors.toSet());
         if (!listeners.isEmpty()) {
             JsonNode data = payload.get("data");
+            log.info("------------------onRpcCommand data: " + data.toString());
             RpcCommandData rpcCommand = new RpcCommandData();
             rpcCommand.setRequestId(data.get("id").asInt());
             rpcCommand.setMethod(data.get("method").asText());
             rpcCommand.setParams(JsonTools.toString(data.get("params")));
             listeners.forEach(listener -> callbackExecutor.submit(() -> {
                 try {
+                    log.info("------------------listener.onRpcCommand--- " + data.toString());
                     listener.onRpcCommand(deviceName, rpcCommand);
                 } catch (Exception e) {
                     log.error("[{}][{}] Failed to process rpc command", deviceName, rpcCommand.getRequestId(), e);
@@ -499,6 +522,12 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
     private <T> boolean subscribe(Function<T, Boolean> f, T sub) {
         if (f.apply(sub)) {
             log.info("Subscription added: {}", sub);
+//            //@TODO: ThuyetLV Test
+//            try {
+//                test();
+//            } catch (Exception ex) {
+//                log.error("ERROR test: ", ex);
+//            }
             return true;
         } else {
             log.warn("Subscription was already added: {}", sub);

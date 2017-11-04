@@ -30,7 +30,8 @@ public class RelayControl {
     protected static final Logger logger = Logger.getLogger(RelayControl.class);
 
     private static final String THINGSBOARD_HOST = "localhost";
-    private static final String ACCESS_TOKEN = "NJrK0OlYPuaEMFf2vCvs";
+    private static final String ACCESS_TOKEN = "5fQyt6QH4mJOCDSbXdGZ";  //HTA_10
+//    private static final String ACCESS_TOKEN = "d1lhGMM89WkiLxmAfEHN";  //GW_HTA
     private MqttAsyncClient mThingsboardMqttClient;
 
     private static final Map<Integer, Integer> listRelay = new HashMap<>();

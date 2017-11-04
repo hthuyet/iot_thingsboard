@@ -16,7 +16,8 @@
 
 gateway:
   reporting:
-    interval: 60000
+    #interval: 60000
+    interval: 6000000
   persistence:
     type: file
     path: storage
@@ -41,6 +42,7 @@ opc:
 mqtt:
   enabled: true
   configuration: mqtt-config.json
+  #configuration: mqtt-config-ewi.json
 
 sigfox:
   enabled: false

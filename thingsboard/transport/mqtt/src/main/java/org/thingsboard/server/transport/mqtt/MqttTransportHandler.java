@@ -1,17 +1,17 @@
 /**
  * Copyright © 2016-2017 The Thingsboard Authors
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.thingsboard.server.transport.mqtt;
 
@@ -78,7 +78,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     private volatile GatewaySessionCtx gatewaySessionCtx;
 
     public MqttTransportHandler(SessionMsgProcessor processor, DeviceService deviceService, DeviceAuthService authService, RelationService relationService,
-                                MqttTransportAdaptor adaptor, SslHandler sslHandler) {
+            MqttTransportAdaptor adaptor, SslHandler sslHandler) {
         this.processor = processor;
         this.deviceService = deviceService;
         this.relationService = relationService;
@@ -142,6 +142,7 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
         log.trace("[{}] Processing publish msg [{}][{}]!", sessionId, topicName, msgId);
 
         if (topicName.startsWith(BASE_GATEWAY_API_TOPIC)) {
+            log.info("----------------------processPublish BASE_GATEWAY_API_TOPIC: " + topicName);
             if (gatewaySessionCtx != null) {
                 gatewaySessionCtx.setChannel(ctx);
                 handleMqttPublishMsg(topicName, msgId, mqttMsg);
@@ -154,16 +155,22 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     private void handleMqttPublishMsg(String topicName, int msgId, MqttPublishMessage mqttMsg) {
         try {
             if (topicName.equals(GATEWAY_TELEMETRY_TOPIC)) {
+                log.info("----------------------handleMqttPublishMsg onDeviceTelemetry: " + mqttMsg.toString());
                 gatewaySessionCtx.onDeviceTelemetry(mqttMsg);
             } else if (topicName.equals(GATEWAY_ATTRIBUTES_TOPIC)) {
+                log.info("----------------------handleMqttPublishMsg onDeviceAttributes: " + mqttMsg.toString());
                 gatewaySessionCtx.onDeviceAttributes(mqttMsg);
             } else if (topicName.equals(GATEWAY_ATTRIBUTES_REQUEST_TOPIC)) {
+                log.info("----------------------handleMqttPublishMsg onDeviceAttributesRequest: " + mqttMsg.toString());
                 gatewaySessionCtx.onDeviceAttributesRequest(mqttMsg);
             } else if (topicName.equals(GATEWAY_RPC_TOPIC)) {
+                log.info("----------------------handleMqttPublishMsg onDeviceRpcResponse: " + mqttMsg.toString());
                 gatewaySessionCtx.onDeviceRpcResponse(mqttMsg);
             } else if (topicName.equals(GATEWAY_CONNECT_TOPIC)) {
+                log.info("----------------------handleMqttPublishMsg onDeviceConnect: " + mqttMsg.toString());
                 gatewaySessionCtx.onDeviceConnect(mqttMsg);
             } else if (topicName.equals(GATEWAY_DISCONNECT_TOPIC)) {
+                log.info("----------------------handleMqttPublishMsg onDeviceDisconnect: " + mqttMsg.toString());
                 gatewaySessionCtx.onDeviceDisconnect(mqttMsg);
             }
         } catch (RuntimeException | AdaptorException e) {
@@ -229,6 +236,13 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
                 } else if (topicName.equals(DEVICE_ATTRIBUTES_RESPONSES_TOPIC)) {
                     deviceSessionCtx.setAllowAttributeResponses();
                     grantedQoSList.add(getMinSupportedQos(reqQoS));
+                } else if (topicName.startsWith(BASE_GATEWAY_API_TOPIC)) {
+                    //@TODO: ThuyetLV: add cho dang ky topic GATEWAY_API
+                    log.info("----------THUYETLV ADD SUB GATEWAY TOPIC-------");
+                    if (gatewaySessionCtx != null) {
+                        gatewaySessionCtx.setChannel(ctx);
+                    }
+                    grantedQoSList.add(getMinSupportedQos(reqQoS));
                 } else {
                     log.warn("[{}] Failed to subscribe to [{}][{}]", sessionId, topicName, reqQoS);
                     grantedQoSList.add(FAILURE.value());
@@ -265,8 +279,8 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
     private MqttMessage createUnSubAckMessage(int msgId) {
-        MqttFixedHeader mqttFixedHeader =
-                new MqttFixedHeader(UNSUBACK, false, AT_LEAST_ONCE, false, 0);
+        MqttFixedHeader mqttFixedHeader
+                = new MqttFixedHeader(UNSUBACK, false, AT_LEAST_ONCE, false, 0);
         MqttMessageIdVariableHeader mqttMessageIdVariableHeader = MqttMessageIdVariableHeader.from(msgId);
         return new MqttMessage(mqttFixedHeader, mqttMessageIdVariableHeader);
     }
@@ -340,10 +354,10 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
     private MqttConnAckMessage createMqttConnAckMsg(MqttConnectReturnCode returnCode) {
-        MqttFixedHeader mqttFixedHeader =
-                new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0);
-        MqttConnAckVariableHeader mqttConnAckVariableHeader =
-                new MqttConnAckVariableHeader(returnCode, true);
+        MqttFixedHeader mqttFixedHeader
+                = new MqttFixedHeader(CONNACK, false, AT_MOST_ONCE, false, 0);
+        MqttConnAckVariableHeader mqttConnAckVariableHeader
+                = new MqttConnAckVariableHeader(returnCode, true);
         return new MqttConnAckMessage(mqttFixedHeader, mqttConnAckVariableHeader);
     }
 
@@ -359,8 +373,8 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
     private static MqttSubAckMessage createSubAckMessage(Integer msgId, List<Integer> grantedQoSList) {
-        MqttFixedHeader mqttFixedHeader =
-                new MqttFixedHeader(SUBACK, false, AT_LEAST_ONCE, false, 0);
+        MqttFixedHeader mqttFixedHeader
+                = new MqttFixedHeader(SUBACK, false, AT_LEAST_ONCE, false, 0);
         MqttMessageIdVariableHeader mqttMessageIdVariableHeader = MqttMessageIdVariableHeader.from(msgId);
         MqttSubAckPayload mqttSubAckPayload = new MqttSubAckPayload(grantedQoSList);
         return new MqttSubAckMessage(mqttFixedHeader, mqttMessageIdVariableHeader, mqttSubAckPayload);
@@ -371,10 +385,10 @@ public class MqttTransportHandler extends ChannelInboundHandlerAdapter implement
     }
 
     public static MqttPubAckMessage createMqttPubAckMsg(int requestId) {
-        MqttFixedHeader mqttFixedHeader =
-                new MqttFixedHeader(PUBACK, false, AT_LEAST_ONCE, false, 0);
-        MqttMessageIdVariableHeader mqttMsgIdVariableHeader =
-                MqttMessageIdVariableHeader.from(requestId);
+        MqttFixedHeader mqttFixedHeader
+                = new MqttFixedHeader(PUBACK, false, AT_LEAST_ONCE, false, 0);
+        MqttMessageIdVariableHeader mqttMsgIdVariableHeader
+                = MqttMessageIdVariableHeader.from(requestId);
         return new MqttPubAckMessage(mqttFixedHeader, mqttMsgIdVariableHeader);
     }
 
