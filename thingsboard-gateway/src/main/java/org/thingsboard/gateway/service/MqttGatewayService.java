@@ -134,8 +134,8 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
         byte[] msgData = toBytes(newNode().put("device", deviceName));
         MqttMessage msg = new MqttMessage(msgData);
         msg.setId(msgId);
-        log.info("[{}] Device Connected!", deviceName);
         devices.putIfAbsent(deviceName, new DeviceInfo(deviceName));
+        log.info("[{}] Device Connected - list Device {}!", deviceName, devices.size());
         return publishAsync(GATEWAY_CONNECT_TOPIC, msg,
                 token -> {
                     log.info("[{}][{}] Device connect event is reported to Thingsboard!", deviceName, msgId);
@@ -522,12 +522,6 @@ public class MqttGatewayService implements GatewayService, MqttCallback, IMqttMe
     private <T> boolean subscribe(Function<T, Boolean> f, T sub) {
         if (f.apply(sub)) {
             log.info("Subscription added: {}", sub);
-//            //@TODO: ThuyetLV Test
-//            try {
-//                test();
-//            } catch (Exception ex) {
-//                log.error("ERROR test: ", ex);
-//            }
             return true;
         } else {
             log.warn("Subscription was already added: {}", sub);

@@ -29,5 +29,6 @@ public class ServerSideRpcMapping {
     private String responseTopicExpression;
     private long responseTimeout;
     private String valueExpression;
+    private String filterExpression;
 
 }

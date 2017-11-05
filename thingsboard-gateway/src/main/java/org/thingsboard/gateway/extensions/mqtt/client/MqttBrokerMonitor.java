@@ -147,6 +147,7 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
     private void subscribeToTopics() throws MqttException {
         List<IMqttToken> tokens = new ArrayList<>();
         for (MqttTopicMapping mapping : configuration.getMapping()) {
+            log.info("-------------------subscribe getTopicFilter: " + mapping.getTopicFilter());
             tokens.add(client.subscribe(mapping.getTopicFilter(), 1, new MqttTelemetryMessageListener(this::onDeviceData, mapping.getConverter())));
         }
         if (configuration.getConnectRequests() != null) {
@@ -184,8 +185,12 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
         cleanUpKeepAliveTimes(deviceName);
     }
 
+    //"filterExpression": "$.*[?($.cmd == \"1\")]",
+    //"filterExpression": "[?(@.cmd == '1')]",
     private void onDeviceData(List<DeviceData> data) {
+        log.info("------------onDeviceData: " + data.size());
         for (DeviceData dd : data) {
+            log.info("------------getTimeout: " + dd.getTimeout());
             if (devices.add(dd.getName())) {
                 gateway.onDeviceConnect(dd.getName());
             }
@@ -289,6 +294,7 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
                             new MqttRpcResponseMessageListener(requestId, deviceName, this::onRpcCommandResponse)
                     ).waitForCompletion();
                     scheduler.schedule(() -> {
+                        //@TODO: ThuyetLV: khong unsubscribe
                         unsubscribe(deviceName, requestId, responseTopic);
                     }, mapping.getResponseTimeout(), TimeUnit.MILLISECONDS);
                     publish(deviceName, requestTopic, new MqttMessage(body.getBytes(StandardCharsets.UTF_8)));
@@ -302,12 +308,30 @@ public class MqttBrokerMonitor implements MqttCallback, AttributesUpdateListener
     private void onRpcCommandResponse(String topic, RpcCommandResponse rpcResponse) {
         log.info("[{}] Un-subscribe from RPC response topic [{}] - data [{}]", rpcResponse.getDeviceName(), topic, rpcResponse.getData());
         gateway.onDeviceRpcResponse(rpcResponse);
-        unsubscribe(rpcResponse.getDeviceName(), rpcResponse.getRequestId(), topic);
+        if (checkToUnsub(rpcResponse.getDeviceName(), topic)) {
+            unsubscribe(rpcResponse.getDeviceName(), rpcResponse.getRequestId(), topic);
+        }
+    }
+
+    //ThuyetLV
+    /**
+     * Return true la cho unsub, false la khong unsub
+     *
+     * @param deviceName
+     * @param topic
+     * @return
+     */
+    private boolean checkToUnsub(String deviceName, String topic) {
+        log.info("[{}] checkToUnsub topic [{}]", deviceName, topic);
+        return false;
     }
 
     private void unsubscribe(String deviceName, int requestId, String topic) {
         try {
-            client.unsubscribe(topic);
+            log.info("--------------[{}] unsubscribe topic {}", deviceName, topic);
+            if (checkToUnsub(deviceName, topic)) {
+                client.unsubscribe(topic);
+            }
         } catch (MqttException e) {
             log.warn("[{}][{}] Failed to unsubscribe from RPC reply topic [{}]", deviceName, requestId, topic, e);
         }

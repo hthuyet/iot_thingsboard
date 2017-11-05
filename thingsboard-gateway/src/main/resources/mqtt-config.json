@@ -50,16 +50,21 @@
                     }
                 },
                 {
-                    "topicFilter": "hta",
+                    "topicFilter": "HTAE1/+/IN",
                     "converter": {
                         "type": "json",
-                        "filterExpression": "",
+                        "filterExpression": "[?(@.cmd== '1' || @.cmd== '6')]",
                         "deviceNameJsonExpression": "${$.uid}",
                         "attributes": [
                             {
                                 "type": "string",
                                 "key": "data",
                                 "value": "${$.data}"
+                            },
+                            {
+                                "type": "string",
+                                "key": "model",
+                                "value": "HTA"
                             }
                         ]
                     }
@@ -185,6 +190,23 @@
                 }
             ],
             "serverSideRpc": [
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "controlRelay",
+                    "requestTopicExpression": "HTAE1/${deviceName}/OUT",
+                    "responseTopicExpression": "HTAE1/${deviceName}/IN",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}",
+                    "filterExpression": ""
+                },
+                {
+                    "deviceNameFilter": ".*",
+                    "methodFilter": "getStateRelay",
+                    "requestTopicExpression": "HTAE1/${deviceName}/OUT",
+                    "responseTopicExpression": "HTAE1/${deviceName}/IN",
+                    "responseTimeout": 10000,
+                    "valueExpression": "${params}"
+                },
                 {
                     "deviceNameFilter": ".*",
                     "methodFilter": "getRelayStatus",
